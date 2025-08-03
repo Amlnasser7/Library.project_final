@@ -21,8 +21,8 @@ int load_books(const char *filename, Book *books, int *count) {
                   &books[*count].id,
                   books[*count].title,
                   books[*count].author,
-                  &books[*count].publication_year, // Corrected member name
-                  &books[*count].is_borrowed) == 5) { // Corrected member name
+                  &books[*count].publication_year, // Corrected name
+                  &books[*count].is_borrowed) == 5) { // Corrected name
         (*count)++;
     }
 

@@ -9,13 +9,16 @@
 #define MAX_USERS 1000
 #define MAX_NAME_LEN 100
 #define NATIONAL_ID_LEN 15
+#define PHONE_LEN 20
+#define EMAIL_LEN 50
+
 
 // User structure for national ID management
 typedef struct {
     char national_id[NATIONAL_ID_LEN];
     char name[MAX_NAME_LEN];
-    char phone[20];
-    char email[50];
+    char phone[PHONE_LEN];
+    char email[EMAIL_LEN];
     int books_borrowed;
     int borrowed_book_ids[10]; // Maximum 10 books per user
 } User;

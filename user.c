@@ -139,6 +139,8 @@ void search_user_by_national_id() {
         scanf(" %c", &choice);
         
         if (choice == 'y' || choice == 'Y') {
+
+
             // Pre-fill the national ID for new user
             if (user_count < MAX_USERS) {
                 User new_user;
@@ -157,12 +159,14 @@ void search_user_by_national_id() {
                 scanf("%s", new_user.email);
                 
                 // Initialize borrowing information
+
                 new_user.books_borrowed = 0;
                 for (int i = 0; i < 10; i++) {
                     new_user.borrowed_book_ids[i] = 0;
                 }
                 
                 // Add user to array
+                
                 users[user_count] = new_user;
                 user_count++;
                 
