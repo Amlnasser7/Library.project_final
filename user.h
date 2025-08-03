@@ -23,10 +23,10 @@ typedef struct {
     int borrowed_book_ids[10]; // Maximum 10 books per user
 } User;
 
-// Function declarations only (no definitions in header)
+// Function declarations 
 void viewAvailableBooks();
-void borrowBook();
-void returnBook();
+void borrowBookByUser();
+void returnBookByUser();
 void searchByTitle();
 void filterByAuthor();
 void filterByYear();
@@ -35,10 +35,16 @@ void init_user_pointers();
 
 // National ID functions
 int find_user_by_national_id(const char *national_id);
+int find_user_by_name(const char *name);
 void add_new_user();
 void search_user_by_national_id();
 void display_user_info(const User *user);
+void display_user_borrowed_books_by_id(const char *user_id);
 void save_users_to_file();
 void load_users_from_file();
+
+
+void borrowBook();
+void returnBook();
 
 #endif

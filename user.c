@@ -9,25 +9,25 @@
 #define MAX_RESULTS 100
 #define USERS_FILE "users.txt"
 
-// Get pointers to admin data
+
 static Book *library_ptr = NULL;
 static int *book_count_ptr = NULL;
 static int *next_id_ptr = NULL;
 
-// User management arrays
+
 User users[MAX_USERS];
 int user_count = 0;
 
 Book searchResults[MAX_RESULTS];
 int searchResultCount = 0;
 
-// Initialize pointers to admin data
+
 void init_user_pointers() {
     library_ptr = get_library_address();
     book_count_ptr = get_book_count_address();
     next_id_ptr = get_next_id_address();
     
-    // Load users from file when initializing
+    
     load_users_from_file();
 }
 
@@ -43,6 +43,26 @@ void toLowerStr(char *str) {
 int find_user_by_national_id(const char *national_id) {
     for (int i = 0; i < user_count; i++) {
         if (strcmp(users[i].national_id, national_id) == 0) {
+            return i; // Return index if found
+        }
+    }
+    return -1; // Not found
+}
+
+// Find user by name (case-insensitive)
+int find_user_by_name(const char *name) {
+    char lower_search_name[MAX_NAME_LEN];
+    strncpy(lower_search_name, name, MAX_NAME_LEN);
+    lower_search_name[MAX_NAME_LEN - 1] = '\0';
+    toLowerStr(lower_search_name);
+    
+    for (int i = 0; i < user_count; i++) {
+        char lower_user_name[MAX_NAME_LEN];
+        strncpy(lower_user_name, users[i].name, MAX_NAME_LEN);
+        lower_user_name[MAX_NAME_LEN - 1] = '\0';
+        toLowerStr(lower_user_name);
+        
+        if (strcmp(lower_user_name, lower_search_name) == 0) {
             return i; // Return index if found
         }
     }
@@ -65,8 +85,63 @@ void display_user_info(const User *user) {
             if (i < user->books_borrowed - 1) printf(", ");
         }
         printf("\n");
+        
+        // Display actual book details
+        printf("\nBorrowed Books Details:\n");
+        for (int i = 0; i < user->books_borrowed; i++) {
+            int book_id = user->borrowed_book_ids[i];
+            // Find book in library
+            for (int j = 0; j < *book_count_ptr; j++) {
+                if (library_ptr[j].id == book_id) {
+                    printf("- \"%s\" by %s (ID: %d)\n", 
+                           library_ptr[j].title, 
+                           library_ptr[j].author, 
+                           library_ptr[j].id);
+                    break;
+                }
+            }
+        }
     }
     printf("========================\n");
+}
+
+// Display borrowed books by specific user ID
+void display_user_borrowed_books_by_id(const char *user_id) {
+    int user_index = find_user_by_national_id(user_id);
+    
+    if (user_index == -1) {
+        printf("User with National ID '%s' not found.\n", user_id);
+        return;
+    }
+    
+    User *user = &users[user_index];
+    
+    printf("\n=== Books Borrowed by %s (ID: %s) ===\n", user->name, user->national_id);
+    printf("Total books borrowed: %d\n", user->books_borrowed);
+    
+    if (user->books_borrowed == 0) {
+        printf("No books currently borrowed.\n");
+        printf("================================\n");
+        return;
+    }
+    
+    printf("\nBorrowed Books:\n");
+    for (int i = 0; i < user->books_borrowed; i++) {
+        int book_id = user->borrowed_book_ids[i];
+        // Find book in library
+        for (int j = 0; j < *book_count_ptr; j++) {
+            if (library_ptr[j].id == book_id) {
+                printf("%d. \"%s\" by %s (Year: %d) [ID: %d]\n", 
+                       i + 1,
+                       library_ptr[j].title, 
+                       library_ptr[j].author,
+                       library_ptr[j].publication_year,
+                       library_ptr[j].id);
+                break;
+            }
+        }
+    }
+    printf("================================\n");
 }
 
 // Add new user
@@ -129,7 +204,7 @@ void search_user_by_national_id() {
     int index = find_user_by_national_id(national_id);
     
     if (index != -1) {
-        printf("✓ User Found!\n");
+        printf("User Found!\n");
         display_user_info(&users[index]);
     } else {
         printf("User with National ID '%s' not found.\n", national_id);
@@ -139,8 +214,6 @@ void search_user_by_national_id() {
         scanf(" %c", &choice);
         
         if (choice == 'y' || choice == 'Y') {
-
-
             // Pre-fill the national ID for new user
             if (user_count < MAX_USERS) {
                 User new_user;
@@ -159,14 +232,12 @@ void search_user_by_national_id() {
                 scanf("%s", new_user.email);
                 
                 // Initialize borrowing information
-
                 new_user.books_borrowed = 0;
                 for (int i = 0; i < 10; i++) {
                     new_user.borrowed_book_ids[i] = 0;
                 }
                 
                 // Add user to array
-                
                 users[user_count] = new_user;
                 user_count++;
                 
@@ -245,6 +316,11 @@ void load_users_from_file() {
         token = strtok(NULL, "|");
         if (!token) continue;
         users[user_count].books_borrowed = atoi(token);
+        
+        // Initialize borrowed book IDs array
+        for (int i = 0; i < 10; i++) {
+            users[user_count].borrowed_book_ids[i] = 0;
+        }
         
         // Load borrowed book IDs
         for (int i = 0; i < users[user_count].books_borrowed; i++) {
@@ -404,70 +480,167 @@ void viewAvailableBooks() {
     }
 }
 
+// Enhanced borrowing function with user ID tracking
 void borrowBook() {
     // Initialize pointers if not done already
     if (library_ptr == NULL) {
         init_user_pointers();
     }
 
-    int id, found = 0;
-
     if (*book_count_ptr == 0) {
         printf("No books in the library.\n");
         return;
     }
 
-    printf("Enter the book ID you desire to borrow: ");
-    scanf("%d", &id);
+    char user_id[NATIONAL_ID_LEN];
+    int book_id;
+    
+    printf("\n=== Borrow Book ===\n");
+    
+    // Get user ID
+    printf("Enter your National ID: ");
+    scanf("%s", user_id);
+    
+    // Find user by ID
+    int user_index = find_user_by_national_id(user_id);
+    if (user_index == -1) {
+        printf("User with National ID '%s' not found in the system.\n", user_id);
+        printf("Please register first or contact an administrator.\n");
+        return;
+    }
+    
+    // Check if user has reached borrowing limit
+    if (users[user_index].books_borrowed >= 10) {
+        printf("You have reached the maximum borrowing limit (10 books).\n");
+        printf("Please return some books before borrowing new ones.\n");
+        return;
+    }
+    
+    printf("Enter the book ID you want to borrow: ");
+    scanf("%d", &book_id);
 
+    // Find the book
+    int book_found = 0;
     for (int i = 0; i < *book_count_ptr; i++) {
-        if (library_ptr[i].id == id && !library_ptr[i].is_borrowed) {
+        if (library_ptr[i].id == book_id) {
+            book_found = 1;
+            if (library_ptr[i].is_borrowed) {
+                printf("The book \"%s\" is already borrowed.\n", library_ptr[i].title);
+                return;
+            }
+            
+            // Mark book as borrowed
             library_ptr[i].is_borrowed = 1;
-            found = 1;
-            printf("The book \"%s\" by %s is borrowed successfully.\n", 
-                   library_ptr[i].title, library_ptr[i].author);
+            
+            // Add book to user's borrowed list
+            users[user_index].borrowed_book_ids[users[user_index].books_borrowed] = book_id;
+            users[user_index].books_borrowed++;
+            
+            // Save users to file
+            save_users_to_file();
+            
+            printf("Book \"%s\" by %s successfully borrowed by %s (ID: %s).\n", 
+                   library_ptr[i].title, library_ptr[i].author, users[user_index].name, users[user_index].national_id);
+            printf("You now have %d book(s) borrowed.\n", users[user_index].books_borrowed);
             break;
-        } else if (library_ptr[i].id == id && library_ptr[i].is_borrowed) {
-            printf("The book \"%s\" is already borrowed.\n", library_ptr[i].title);
-            return;
         }
     }
 
-    if (!found) {
-        printf("The book with ID %d is not found.\n", id);
+    if (!book_found) {
+        printf("Book with ID %d not found.\n", book_id);
     }
 }
 
+// Enhanced return function with user ID tracking
 void returnBook() {
     // Initialize pointers if not done already
     if (library_ptr == NULL) {
         init_user_pointers();
     }
 
-    int id, found = 0;
-
     if (*book_count_ptr == 0) {
         printf("No books in the library.\n");
         return;
     }
 
-    printf("Enter the book ID you want to return: ");
-    scanf("%d", &id);
-
-    for (int i = 0; i < *book_count_ptr; i++) {
-        if (library_ptr[i].id == id && library_ptr[i].is_borrowed) {
-            library_ptr[i].is_borrowed = 0;
-            found = 1;
-            printf("The book \"%s\" by %s is returned successfully.\n", 
-                   library_ptr[i].title, library_ptr[i].author);
-            break;
-        } else if (library_ptr[i].id == id && !library_ptr[i].is_borrowed) {
-            printf("The book \"%s\" is not currently borrowed.\n", library_ptr[i].title);
-            return;
+    char user_id[NATIONAL_ID_LEN];
+    int book_id;
+    
+    printf("\n=== Return Book ===\n");
+    
+    // Get user ID
+    printf("Enter your National ID: ");
+    scanf("%s", user_id);
+    
+    // Find user
+    int user_index = find_user_by_national_id(user_id);
+    if (user_index == -1) {
+        printf("User with National ID '%s' not found in the system.\n", user_id);
+        return;
+    }
+    
+    // Show user's borrowed books
+    if (users[user_index].books_borrowed == 0) {
+        printf("You have no books to return.\n");
+        return;
+    }
+    
+    printf("\nYour borrowed books (%s):\n", users[user_index].name);
+    for (int i = 0; i < users[user_index].books_borrowed; i++) {
+        int book_id_temp = users[user_index].borrowed_book_ids[i];
+        // Find book details
+        for (int j = 0; j < *book_count_ptr; j++) {
+            if (library_ptr[j].id == book_id_temp) {
+                printf("%d. \"%s\" by %s (ID: %d)\n", 
+                       i + 1, library_ptr[j].title, library_ptr[j].author, book_id_temp);
+                break;
+            }
         }
     }
+    
+    printf("\nEnter the book ID you want to return: ");
+    scanf("%d", &book_id);
 
-    if (!found) {
-        printf("The book with ID %d is not found.\n", id);
+    // Check if user has this book
+    int user_book_index = -1;
+    for (int i = 0; i < users[user_index].books_borrowed; i++) {
+        if (users[user_index].borrowed_book_ids[i] == book_id) {
+            user_book_index = i;
+            break;
+        }
+    }
+    
+    if (user_book_index == -1) {
+        printf("You have not borrowed book with ID %d.\n", book_id);
+        return;
+    }
+
+    // Find the book in library and mark as returned
+    int book_found = 0;
+    for (int i = 0; i < *book_count_ptr; i++) {
+        if (library_ptr[i].id == book_id) {
+            book_found = 1;
+            library_ptr[i].is_borrowed = 0;
+            
+            printf("Book \"%s\" by %s successfully returned by %s (ID: %s).\n", 
+                   library_ptr[i].title, library_ptr[i].author, users[user_index].name, users[user_index].national_id);
+            break;
+        }
+    }
+    
+    if (book_found) {
+        // Remove book from user's borrowed list
+        for (int i = user_book_index; i < users[user_index].books_borrowed - 1; i++) {
+            users[user_index].borrowed_book_ids[i] = users[user_index].borrowed_book_ids[i + 1];
+        }
+        users[user_index].books_borrowed--;
+        users[user_index].borrowed_book_ids[users[user_index].books_borrowed] = 0;
+        
+        // Save users to file
+        save_users_to_file();
+        
+        printf("You now have %d book(s) borrowed.\n", users[user_index].books_borrowed);
+    } else {
+        printf("Book with ID %d not found in library.\n", book_id);
     }
 }

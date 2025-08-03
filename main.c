@@ -101,9 +101,10 @@ void admin_mode() {
     } while (choice != 6);
 }
 
-// User mode: simple menu for demonstration
+// User mode: enhanced menu with ID-based borrowing features
 void user_mode() {
     int choice;
+    char user_id[NATIONAL_ID_LEN];
     
     // Initialize user pointers to access admin data
     init_user_pointers();
@@ -112,11 +113,12 @@ void user_mode() {
         printf("\n=== User Mode ===\n");
         printf("1. Search Book by Title\n");
         printf("2. View Available Books\n");
-        printf("3. Borrow Book\n");
-        printf("4. Return Book\n");
-        printf("5. Search User by National ID\n");
-        printf("6. Add New User\n");
-        printf("7. Exit User Mode\n");
+        printf("3. Borrow Book (Enter your National ID)\n");
+        printf("4. Return Book (Enter your National ID)\n");
+        printf("5. View My Borrowed Books (Enter your National ID)\n");
+        printf("6. Search User by National ID\n");
+        printf("7. Add New User\n");
+        printf("8. Exit User Mode\n");
         printf("Enter your choice: ");
         scanf("%d", &choice);
 
@@ -134,12 +136,17 @@ void user_mode() {
                 returnBook();
                 break;
             case 5:
-                search_user_by_national_id();
+                printf("Enter your National ID: ");
+                scanf("%s", user_id);
+                display_user_borrowed_books_by_id(user_id);
                 break;
             case 6:
-                add_new_user();
+                search_user_by_national_id();
                 break;
             case 7:
+                add_new_user();
+                break;
+            case 8:
                 printf("Exiting User Mode...\n");
                 break;
             default:
@@ -147,13 +154,13 @@ void user_mode() {
                 break;
         }
         
-        if (choice != 7) {
+        if (choice != 8) {
             printf("\nPress Enter to continue...");
             clear_input_buffer();
             getchar();
         }
         
-    } while (choice != 7);
+    } while (choice != 8);
 }
 
 void exiting_library() {
