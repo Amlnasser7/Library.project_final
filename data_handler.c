@@ -43,8 +43,8 @@ int save_books(const char *filename, const Book *books, int current_book_count) 
                 books[i].id,
                 books[i].title,
                 books[i].author,
-                books[i].publication_year, // Corrected member name
-                books[i].is_borrowed);      // Corrected member name
+                books[i].publication_year, // Corrected  name
+                books[i].is_borrowed);      // Corrected name
     }
 
     fclose(file);

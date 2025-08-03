@@ -7,11 +7,16 @@
 #include "admin.h"
 
 #define MAX_RESULTS 100
+#define USERS_FILE "users.txt"
 
 // Get pointers to admin data
 static Book *library_ptr = NULL;
 static int *book_count_ptr = NULL;
 static int *next_id_ptr = NULL;
+
+// User management arrays
+User users[MAX_USERS];
+int user_count = 0;
 
 Book searchResults[MAX_RESULTS];
 int searchResultCount = 0;
@@ -21,12 +26,235 @@ void init_user_pointers() {
     library_ptr = get_library_address();
     book_count_ptr = get_book_count_address();
     next_id_ptr = get_next_id_address();
+    
+    // Load users from file when initializing
+    load_users_from_file();
 }
 
 void toLowerStr(char *str) {
     for (int i = 0; str[i]; i++) {
         str[i] = tolower((unsigned char) str[i]);
     }
+}
+
+//**************************National ID Functions******************************//
+
+// Find user by national ID
+int find_user_by_national_id(const char *national_id) {
+    for (int i = 0; i < user_count; i++) {
+        if (strcmp(users[i].national_id, national_id) == 0) {
+            return i; // Return index if found
+        }
+    }
+    return -1; // Not found
+}
+
+// Display user information
+void display_user_info(const User *user) {
+    printf("\n=== User Information ===\n");
+    printf("National ID: %s\n", user->national_id);
+    printf("Name: %s\n", user->name);
+    printf("Phone: %s\n", user->phone);
+    printf("Email: %s\n", user->email);
+    printf("Books Borrowed: %d\n", user->books_borrowed);
+    
+    if (user->books_borrowed > 0) {
+        printf("Borrowed Book IDs: ");
+        for (int i = 0; i < user->books_borrowed; i++) {
+            printf("%d", user->borrowed_book_ids[i]);
+            if (i < user->books_borrowed - 1) printf(", ");
+        }
+        printf("\n");
+    }
+    printf("========================\n");
+}
+
+// Add new user
+void add_new_user() {
+    if (user_count >= MAX_USERS) {
+        printf("Maximum number of users reached!\n");
+        return;
+    }
+    
+    User new_user;
+    
+    printf("\n=== Add New User ===\n");
+    
+    printf("Enter National ID: ");
+    scanf("%s", new_user.national_id);
+    
+    // Check if user already exists
+    if (find_user_by_national_id(new_user.national_id) != -1) {
+        printf("User with National ID %s already exists!\n", new_user.national_id);
+        return;
+    }
+    
+    clear_input_buffer();
+    
+    printf("Enter Full Name: ");
+    fgets(new_user.name, MAX_NAME_LEN, stdin);
+    new_user.name[strcspn(new_user.name, "\n")] = 0;
+    
+    printf("Enter Phone Number: ");
+    scanf("%s", new_user.phone);
+    
+    printf("Enter Email: ");
+    scanf("%s", new_user.email);
+    
+    // Initialize borrowing information
+    new_user.books_borrowed = 0;
+    for (int i = 0; i < 10; i++) {
+        new_user.borrowed_book_ids[i] = 0;
+    }
+    
+    // Add user to array
+    users[user_count] = new_user;
+    user_count++;
+    
+    // Save to file
+    save_users_to_file();
+    
+    printf("User added successfully!\n");
+    display_user_info(&new_user);
+}
+
+// Search user by national ID
+void search_user_by_national_id() {
+    char national_id[NATIONAL_ID_LEN];
+    
+    printf("\n== Search User by National ID ==\n");
+    printf("Enter National ID: ");
+    scanf("%s", national_id);
+    
+    int index = find_user_by_national_id(national_id);
+    
+    if (index != -1) {
+        printf("✓ User Found!\n");
+        display_user_info(&users[index]);
+    } else {
+        printf("User with National ID '%s' not found.\n", national_id);
+        
+        char choice;
+        printf("Would you like to add this user? (y/n): ");
+        scanf(" %c", &choice);
+        
+        if (choice == 'y' || choice == 'Y') {
+            // Pre-fill the national ID for new user
+            if (user_count < MAX_USERS) {
+                User new_user;
+                strcpy(new_user.national_id, national_id);
+                
+                clear_input_buffer();
+                
+                printf("Enter Full Name: ");
+                fgets(new_user.name, MAX_NAME_LEN, stdin);
+                new_user.name[strcspn(new_user.name, "\n")] = 0;
+                
+                printf("Enter Phone Number: ");
+                scanf("%s", new_user.phone);
+                
+                printf("Enter Email: ");
+                scanf("%s", new_user.email);
+                
+                // Initialize borrowing information
+                new_user.books_borrowed = 0;
+                for (int i = 0; i < 10; i++) {
+                    new_user.borrowed_book_ids[i] = 0;
+                }
+                
+                // Add user to array
+                users[user_count] = new_user;
+                user_count++;
+                
+                // Save to file
+                save_users_to_file();
+                
+                printf("User added successfully!\n");
+                display_user_info(&new_user);
+            } else {
+                printf("Cannot add user - maximum limit reached!\n");
+            }
+        }
+    }
+}
+
+// Save users to file
+void save_users_to_file() {
+    FILE *file = fopen(USERS_FILE, "w");
+    if (!file) {
+        printf("Error: Could not save users to file.\n");
+        return;
+    }
+    
+    for (int i = 0; i < user_count; i++) {
+        fprintf(file, "%s|%s|%s|%s|%d",
+                users[i].national_id,
+                users[i].name,
+                users[i].phone,
+                users[i].email,
+                users[i].books_borrowed);
+        
+        // Save borrowed book IDs
+        for (int j = 0; j < users[i].books_borrowed; j++) {
+            fprintf(file, "|%d", users[i].borrowed_book_ids[j]);
+        }
+        fprintf(file, "\n");
+    }
+    
+    fclose(file);
+}
+
+// Load users from file
+void load_users_from_file() {
+    FILE *file = fopen(USERS_FILE, "r");
+    if (!file) {
+        // File doesn't exist yet, that's okay
+        user_count = 0;
+        return;
+    }
+    
+    user_count = 0;
+    char line[500];
+    
+    while (fgets(line, sizeof(line), file) && user_count < MAX_USERS) {
+        // Remove newline
+        line[strcspn(line, "\n")] = 0;
+        
+        // Parse the line
+        char *token = strtok(line, "|");
+        if (!token) continue;
+        
+        strcpy(users[user_count].national_id, token);
+        
+        token = strtok(NULL, "|");
+        if (!token) continue;
+        strcpy(users[user_count].name, token);
+        
+        token = strtok(NULL, "|");
+        if (!token) continue;
+        strcpy(users[user_count].phone, token);
+        
+        token = strtok(NULL, "|");
+        if (!token) continue;
+        strcpy(users[user_count].email, token);
+        
+        token = strtok(NULL, "|");
+        if (!token) continue;
+        users[user_count].books_borrowed = atoi(token);
+        
+        // Load borrowed book IDs
+        for (int i = 0; i < users[user_count].books_borrowed; i++) {
+            token = strtok(NULL, "|");
+            if (token) {
+                users[user_count].borrowed_book_ids[i] = atoi(token);
+            }
+        }
+        
+        user_count++;
+    }
+    
+    fclose(file);
+    printf("Loaded %d users from file.\n", user_count);
 }
 
 //**************************Search By Title******************************//
