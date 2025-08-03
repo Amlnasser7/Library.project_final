@@ -1,13 +1,5 @@
 #include "user.h"
-#include <string.h>   // For: strcspn, strncpy, strstr
-#include <ctype.h>    // For: tolower
-#include <stdio.h>
-#include <stdlib.h>
-#include "book.h"
-#include "admin.h"
 
-#define MAX_RESULTS 100
-#define USERS_FILE "users.txt"
 
 
 static Book *library_ptr = NULL;
@@ -43,26 +35,6 @@ void toLowerStr(char *str) {
 int find_user_by_national_id(const char *national_id) {
     for (int i = 0; i < user_count; i++) {
         if (strcmp(users[i].national_id, national_id) == 0) {
-            return i; // Return index if found
-        }
-    }
-    return -1; // Not found
-}
-
-// Find user by name (case-insensitive)
-int find_user_by_name(const char *name) {
-    char lower_search_name[MAX_NAME_LEN];
-    strncpy(lower_search_name, name, MAX_NAME_LEN);
-    lower_search_name[MAX_NAME_LEN - 1] = '\0';
-    toLowerStr(lower_search_name);
-    
-    for (int i = 0; i < user_count; i++) {
-        char lower_user_name[MAX_NAME_LEN];
-        strncpy(lower_user_name, users[i].name, MAX_NAME_LEN);
-        lower_user_name[MAX_NAME_LEN - 1] = '\0';
-        toLowerStr(lower_user_name);
-        
-        if (strcmp(lower_user_name, lower_search_name) == 0) {
             return i; // Return index if found
         }
     }

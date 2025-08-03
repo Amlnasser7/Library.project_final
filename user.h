@@ -1,10 +1,16 @@
 #ifndef USER_H
 #define USER_H
 
-#include "book.h"
+#include <string.h>   // For: strcspn, strncpy, strstr
+#include <ctype.h>    // For: tolower
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
+#include "book.h"
+#include "admin.h"
+
+#define MAX_RESULTS 100
+#define USERS_FILE "users.txt"
+
 
 #define MAX_USERS 1000
 #define MAX_NAME_LEN 100
@@ -35,7 +41,6 @@ void init_user_pointers();
 
 // National ID functions
 int find_user_by_national_id(const char *national_id);
-int find_user_by_name(const char *name);
 void add_new_user();
 void search_user_by_national_id();
 void display_user_info(const User *user);

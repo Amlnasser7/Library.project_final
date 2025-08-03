@@ -1,4 +1,4 @@
-1234586289|Aml|+201002661925|amlnasser|0
+1234586289|Aml|+201002661925|amlnasser|1|1
 12354896325|Aml|Nassrr|amlnasser|0
 152365853|eman|12354836|amlnasser32|0
 123554862653|eman|nasser|emannasser32|0
